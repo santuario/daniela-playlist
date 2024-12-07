@@ -38,6 +38,11 @@ let audioPlayer;
 let audioPlayers = [];
 let supportPath = '/daniela-playlist';
 
+// Add new variables for tracking current song
+let currentPlayingIndex = -1;
+const HIGHLIGHT_COLOR = '#1a824b'; // Verde
+const DEFAULT_COLOR = '#000000'; // Negro
+
 /*
  *****************************************
  *****************************************
@@ -92,6 +97,7 @@ function initialize() {
 
 
 }
+
 function initializeAudios() {
   // Create all audio players at initialization
   songs.songs.forEach((song, index) => {
@@ -100,28 +106,39 @@ function initializeAudios() {
     
     // Add event listener for play event
     player.elt.addEventListener('play', () => {
+      currentPlayingIndex = index;
       // Stop all other players
       audioPlayers.forEach((otherPlayer, otherIndex) => {
         if (otherIndex !== index) {
           otherPlayer.pause();
-          // Reset time to beginning if desired
           otherPlayer.time(0);
         }
       });
+    });
+
+    // Add event listener for ended event
+    player.elt.addEventListener('ended', () => {
+      // Play next song if available
+      if (index < audioPlayers.length - 1) {
+        currentPlayingIndex = index + 1;
+        audioPlayers[currentPlayingIndex].play();
+      } else {
+        currentPlayingIndex = -1; // Reset if we're at the last song
+      }
     });
     
     audioPlayers.push(player);
   });
 }
 
-function drawInterface(){
+function drawInterface() {
   background(255);
   fill(0);
   
   // HEADER
-  let headerString = 'notas para daniela'
+  let headerString = 'notas para daniela';
   let currentHeight = 0;
-  let textBoxMaxWidth = windowWidth - 2 * marginText
+  let textBoxMaxWidth = windowWidth - 2 * marginText;
  
   noStroke();
   textFont(geoSmallFont);
@@ -133,41 +150,49 @@ function drawInterface(){
 
   // Make sure songs data is loaded
   if (songs && songs.songs) {
-      // Draw all songs with their respective players
-      songs.songs.forEach((song, index) => {
-          // Story text
-          textFont(geoSmallFont);
-          textSize(storyFontSize);
-          textWrap(WORD);
-          textAlign(LEFT, LEFT);
-          text(song.storyText, marginText, currentHeight, textBoxMaxWidth);
-          const storyHeight = getWrappedTextHeight(song.storyText, textBoxMaxWidth);
-          currentHeight += storyHeight;
-          currentHeight += 20;
+    // Draw all songs with their respective players
+    songs.songs.forEach((song, index) => {
+      // Story text
+      textFont(geoSmallFont);
+      textSize(storyFontSize);
+      textWrap(WORD);
+      textAlign(LEFT, LEFT);
+      fill(0); // Story text always black
+      text(song.storyText, marginText, currentHeight, textBoxMaxWidth);
+      const storyHeight = getWrappedTextHeight(song.storyText, textBoxMaxWidth);
+      currentHeight += storyHeight;
+      currentHeight += 30;
 
-          // Song title
-          textFont(geoMidFont);
-          textSize(nameSongFontSize);
-          text(song.songName, marginText, currentHeight, textBoxMaxWidth);
-          const songStringTextHeight = getWrappedTextHeight(song.songName, textBoxMaxWidth);
-          currentHeight += songStringTextHeight;
+      // Set color based on whether this song is currently playing
+      if (index === currentPlayingIndex) {
+        fill(HIGHLIGHT_COLOR);
+      } else {
+        fill(DEFAULT_COLOR);
+      }
 
-          // Singer name
-          textFont(geoSmallFont);
-          textSize(nameSingerFontSize);
-          text(song.singerName, marginText, currentHeight, textBoxMaxWidth);
-          const singerStringTextHeight = getWrappedTextHeight(song.singerName, textBoxMaxWidth);
-          currentHeight += singerStringTextHeight;
+      // Song title
+      textFont(geoMidFont);
+      textSize(nameSongFontSize);
+      text(song.songName, marginText, currentHeight, textBoxMaxWidth);
+      const songStringTextHeight = getWrappedTextHeight(song.songName, textBoxMaxWidth);
+      currentHeight += songStringTextHeight;
 
-          // Position audio player for this song
-          if (audioPlayers[index]) {
-              audioPlayers[index].position(marginText, currentHeight);
-          }
-          currentHeight += 80; // Space after audio player
+      // Singer name (same color as song title)
+      textFont(geoSmallFont);
+      textSize(nameSingerFontSize);
+      text(song.singerName, marginText, currentHeight, textBoxMaxWidth);
+      const singerStringTextHeight = getWrappedTextHeight(song.singerName, textBoxMaxWidth);
+      currentHeight += singerStringTextHeight;
 
-          // Add extra spacing between songs
-          currentHeight += 20;
-      });
+      // Position audio player
+      if (audioPlayers[index]) {
+        audioPlayers[index].position(marginText, currentHeight);
+      }
+      currentHeight += 80; // Space after audio player
+
+      // Add extra spacing between songs
+      currentHeight += 20;
+    });
   }
 }
 
